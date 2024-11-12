@@ -1,4 +1,4 @@
-module github.com/IBM/nzgo/v12
+module github.com/abhishekjog/nzgo
 
 go 1.15
 
