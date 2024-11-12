@@ -267,7 +267,9 @@ const (
 
 //Client Type
 const (
-	NPSCLIENT_TYPE_GOLANG = 12
+       NPSCLIENT_TYPE_GOLANG  = 12
+       NPSCLIENT_TYPE_CYCLOPS = 15
+       CYCLOPS                = "nz-cyclops"
 )
 
 // Driver is the Postgres database driver.
@@ -1959,7 +1961,8 @@ func (cn *conn) startup(o values) (err error) {
 		}
 
 	}
-	elog.Infoln("Handshake negotiation successful")
+	
+        elog.Infoln("**** Handshake negotiation successful")
 
 	// guardium related information
 	username, _ := user.Current()
@@ -3526,18 +3529,30 @@ func (cn *conn) Conn_send_handshake_version2(o values) (status bool, err error) 
 			information = HSV2_CLIENT_TYPE
 			break
 
-		case HSV2_CLIENT_TYPE: /* Golang client */
+                case HSV2_CLIENT_TYPE: /* Golang client */
+                        var NPSCLIENT_TYPE int
+                        envVar, ok := os.LookupEnv("NPSCLIENT_TYPE")
+                        if ok {
+                                if envVar == CYCLOPS {
+                                        NPSCLIENT_TYPE = NPSCLIENT_TYPE_CYCLOPS
+                                } else {
+                                        NPSCLIENT_TYPE = NPSCLIENT_TYPE_GOLANG
+                                }
+                        } else {
+                                NPSCLIENT_TYPE = NPSCLIENT_TYPE_GOLANG
+                        }
+ 
+                        elog.Infoln("NPSCLIENT_TYPE:", NPSCLIENT_TYPE)
+                        message = HSV2Msg{
+                                opcode:  information,
+                                payload: strconv.Itoa(NPSCLIENT_TYPE), //No Use check below
+                        }
 
-			message = HSV2Msg{
-				opcode:  information,
-				payload: strconv.Itoa(NPSCLIENT_TYPE_GOLANG), //No Use check below
-			}
-
-			b.int16(message.opcode)
-			typ, _ := strconv.Atoi(message.payload)
-			b.int16(typ)
-			elog.Debugln(chopPath(funName()), "Golang client ", message.payload)
-			if cn.hsVersion == CP_VERSION_5 {
+                        b.int16(message.opcode)
+                        typ, _ := strconv.Atoi(message.payload)
+                        b.int16(typ)
+                        elog.Debugln(chopPath(funName()), "** Golang client ", NPSCLIENT_TYPE, message.payload)
+                        if cn.hsVersion == CP_VERSION_5 {
 				information = HSV2_64BIT_VARLENA_ENABLED
 			} else {
 				information = HSV2_CLIENT_DONE
